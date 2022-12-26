@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    run: nginx
+  name: weather-deploy
+spec:
+  selector:
+    matchLabels:
+      run: nginx
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        run: nginx
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        ports:
+        - containerPort: 80
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: weather-scaledobject
+  labels:
+    deploymentName: weather-deploy
+spec:
+  minReplicaCount: 1 # Minimum number of replicas KEDA will scale the resource down to. 
+  maxReplicaCount: 6 # Holds the maximum number of replicas of the target resouce.
+  pollingInterval: 3 # Optional. Default: 30 seconds | will check each trigger source on every ScaledObject every 30 seconds.
+  cooldownPeriod:  5 # Optional. Default: 300 seconds|The period to wait after the last trigger reported active before scaling the resource back to 0.
+  scaleTargetRef:
+    name: weather-deploy        
+  triggers:
+  - type: weather
+    metadata:
+      host: https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s
+      cityName: "CITY_NAME"
+      apiKey: "YOUR API KEY"
+      threshold: "100"
+      activationThreshold: "273" # 10º
+      preference: "Temp"
+      scalerIndex: "42"
